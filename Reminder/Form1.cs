@@ -8,6 +8,8 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Timers;
+using System.IO;
+using Newtonsoft.Json;
 
 namespace Reminder
 {
@@ -15,6 +17,7 @@ namespace Reminder
     {
         #region Fields
 
+        private const string dataFile = "Reminders.json";
         private BindingList<Reminder> Reminders;
         private System.Timers.Timer _timer;
 
@@ -27,18 +30,41 @@ namespace Reminder
             InitializeComponent();
 
             Reminders = new BindingList<Reminder>();
-            Reminders.Add(new Reminder { Active = true, ReminderTime = DateTime.Now.AddSeconds(1), Message = "Remind me" });
+            Reminders.ListChanged += Reminders_ListChanged;
+            LoadReminders();
 
             dgvReminders.DataSource = Reminders;
 
             _timer = new System.Timers.Timer(1000);
             _timer.Elapsed += _timer_Elapsed;
             _timer.Start();
+
+            WindowState = FormWindowState.Minimized;
         }
 
         #endregion Constructors
 
         #region Methods
+
+        private void Reminders_ListChanged(object sender, ListChangedEventArgs e)
+        {
+            SaveReminders();
+        }
+
+        private void LoadReminders()
+        {
+            if (File.Exists(dataFile))
+            {
+                Reminders = JsonConvert.DeserializeObject<BindingList<Reminder>>(File.ReadAllText(dataFile));
+            }
+        }
+
+        private void SaveReminders()
+        {
+            dgvReminders.DataSource = Reminders;
+            var json = JsonConvert.SerializeObject(Reminders);
+            File.WriteAllText(dataFile, json);
+        }
 
         private void _timer_Elapsed(object sender, ElapsedEventArgs e)
         {
@@ -73,14 +99,13 @@ namespace Reminder
                     reminder.LastNotificationTime = DateTime.Now;
                 }
             }
-            dgvReminders.DataSource = Reminders;
+            SaveReminders();
         }
 
         private void btnAddReminder_Click(object sender, EventArgs e)
         {
             Reminders.Add(new Reminder { Active = false, ReminderTime = DateTime.Now.AddSeconds(1), Message = "Remind me" });
-            dgvReminders.DataSource = null;
-            dgvReminders.DataSource = Reminders;
+            SaveReminders();
             dgvReminders.Refresh();
         }
 
