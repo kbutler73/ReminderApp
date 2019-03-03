@@ -10,6 +10,7 @@ using System.Windows.Forms;
 using System.Timers;
 using System.IO;
 using Newtonsoft.Json;
+using Microsoft.Win32;
 
 namespace Reminder
 {
@@ -18,6 +19,8 @@ namespace Reminder
         #region Fields
 
         private const string dataFile = "Reminders.json";
+        private const string keyName = "Reminder";
+
         private BindingList<Reminder> Reminders;
         private System.Timers.Timer _timer;
 
@@ -28,6 +31,8 @@ namespace Reminder
         public Form1()
         {
             InitializeComponent();
+
+            CheckRegistryKey();
 
             Reminders = new BindingList<Reminder>();
             Reminders.ListChanged += Reminders_ListChanged;
@@ -146,6 +151,44 @@ namespace Reminder
             Show();
             WindowState = FormWindowState.Normal;
             Activate();
+        }
+
+        private void startWithWindowsToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            var path = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Run";
+            RegistryKey key = Registry.CurrentUser.OpenSubKey(path, true);
+            if (key.GetValue(keyName) != null)
+            {
+                key.DeleteValue(keyName, false);
+                startWithWindowsToolStripMenuItem.Checked = false;
+            }
+            else
+            {
+                key.SetValue(keyName, Application.ExecutablePath.ToString());
+                startWithWindowsToolStripMenuItem.Checked = true;
+            }
+        }
+
+        private void CheckRegistryKey()
+        {
+            var path = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Run";
+            RegistryKey key = Registry.CurrentUser.OpenSubKey(path, true);
+            if (key.GetValue(keyName) != null)
+            {
+                startWithWindowsToolStripMenuItem.Checked = true;
+            }
+            else
+            {
+                startWithWindowsToolStripMenuItem.Checked = false;
+            }
+        }
+
+        private void dgvReminders_CurrentCellDirtyStateChanged(object sender, EventArgs e)
+        {
+            //if (dgvReminders.IsCurrentCellDirty)
+            //{
+            //    dgvReminders.CommitEdit(DataGridViewDataErrorContexts.Commit);
+            //}
         }
 
         #endregion Methods
